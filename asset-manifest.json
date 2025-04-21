@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/voice-chat-assistant/static/js/main.a50dd11e.js",
+    "main.js": "/voice-chat-assistant/static/js/main.f32b10a9.js",
     "index.html": "/voice-chat-assistant/index.html",
-    "main.a50dd11e.js.map": "/voice-chat-assistant/static/js/main.a50dd11e.js.map"
+    "main.f32b10a9.js.map": "/voice-chat-assistant/static/js/main.f32b10a9.js.map"
   },
   "entrypoints": [
-    "static/js/main.a50dd11e.js"
+    "static/js/main.f32b10a9.js"
   ]
 }
