@@ -159,7 +159,7 @@ function App() {
   return (
     <Box sx={{ minHeight: '100vh', height: '100dvh', width: '100vw', bgcolor: '#23272a', display: 'flex', flexDirection: 'column', fontFamily: 'Roboto, sans-serif', position: 'relative' }}>
       {/* Top: Assistant's Response */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', bgcolor: '#18191c', p: 4 }}>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', bgcolor: '#18191c', p: 4, pb: 10 }}>
         <Paper elevation={3} sx={{ width: '100%', maxWidth: 700, bgcolor: '#26282b', borderRadius: 4, p: 4, boxShadow: '0 2px 12px rgba(0,0,0,0.15)' }}>
           <Typography variant="h6" sx={{ color: '#eee', mb: 2, fontWeight: 700 }}>
             Assistant's Response
@@ -181,7 +181,22 @@ function App() {
         )}
       </Box>
       {/* Bottom: Controls section */}
-      <Box sx={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', bgcolor: '#2c2f33', boxShadow: 2, pb: 'calc(env(safe-area-inset-bottom, 0px) + 8px)', mr: 3, zIndex: 10 }}>
+      <Box sx={{
+  position: 'fixed',
+  bottom: 0,
+  right: 0,
+  width: '100vw',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-end',
+  justifyContent: 'center',
+  bgcolor: '#2c2f33',
+  boxShadow: 2,
+  pb: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+  pr: 3,
+  zIndex: 1300
+}}>
+
         <Button
           variant="contained"
           color={recording ? 'primary' : 'error'}
