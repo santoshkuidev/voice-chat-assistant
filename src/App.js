@@ -10,7 +10,7 @@ function App() {
   const [recording, setRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [reply, setReply] = useState('');
-  const [shouldSend, setShouldSend] = useState(false);
+
   const [isMobileFallback, setIsMobileFallback] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const recognitionRef = useRef(null);
@@ -29,7 +29,6 @@ function App() {
   const handleRecord = async () => {
     setTranscript('');
     setReply('');
-    setShouldSend(false);
     if (supportsSpeechRecognition()) {
       setIsMobileFallback(false);
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -46,10 +45,21 @@ function App() {
         setReply('Speech recognition error: ' + event.error);
         setRecording(false);
       };
-      recognition.onend = () => {
+      recognition.onend = async () => {
         setRecording(false);
-        if (!transcript && lastTranscriptRef.current) {
-          setTranscript(lastTranscriptRef.current);
+        const message = transcript || lastTranscriptRef.current;
+        if (message) {
+          try {
+            const response = await fetch(SERVICE_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message }),
+            });
+            const data = await response.json();
+            setReply(data.reply || 'No reply received.');
+          } catch (err) {
+            setReply('Error contacting chat service.');
+          }
         }
       };
       recognitionRef.current = recognition;
@@ -68,31 +78,44 @@ function App() {
           if (event.data.size > 0) audioChunksRef.current.push(event.data);
         };
         mediaRecorder.onstop = async () => {
-          setTranscribing(true);
-          setRecording(false);
-          stream.getTracks().forEach(track => track.stop());
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          // Send to backend for transcription
-          setReply('Transcribing...');
-          try {
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'audio.webm');
-            const response = await fetch(TRANSCRIBE_URL, {
-              method: 'POST',
-              body: formData,
-            });
-            const data = await response.json();
-            setTranscribing(false);
-            if (data.transcript) {
-              setTranscript(data.transcript);
-              setShouldSend(true);
-            } else {
-              setReply('No transcription was captured.');
+          // Wait a tick to ensure ondataavailable has fired
+          setTimeout(async () => {
+            setTranscribing(true);
+            setRecording(false);
+            stream.getTracks().forEach(track => track.stop());
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            setReply('Transcribing...');
+            try {
+              const formData = new FormData();
+              formData.append('audio', audioBlob, 'audio.webm');
+              const response = await fetch(TRANSCRIBE_URL, {
+                method: 'POST',
+                body: formData,
+              });
+              const data = await response.json();
+              setTranscribing(false);
+              if (data.transcript) {
+                setTranscript(data.transcript);
+                // Call chat service directly
+                try {
+                  const chatResponse = await fetch(SERVICE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: data.transcript }),
+                  });
+                  const chatData = await chatResponse.json();
+                  setReply(chatData.reply || 'No reply received.');
+                } catch (err) {
+                  setReply('Error contacting chat service.');
+                }
+              } else {
+                setReply('No transcription was captured.');
+              }
+            } catch (err) {
+              setTranscribing(false);
+              setReply('Transcription failed.');
             }
-          } catch (err) {
-            setTranscribing(false);
-            setReply('Transcription failed.');
-          }
+          }, 0);
         };
         mediaRecorder.start();
       } catch (err) {
@@ -112,39 +135,14 @@ function App() {
     } else if (recognitionRef.current) {
       recognitionRef.current.stop();
       setRecording(false);
-      setShouldSend(true);
+      
     } else {
       setRecording(false);
-      setShouldSend(true);
+      
     }
   };
 
 
-  useEffect(() => {
-    // Use transcript or fallback to lastTranscriptRef.current
-    if (shouldSend) {
-      const messageToSend = transcript || lastTranscriptRef.current;
-      if (messageToSend) {
-        const send = async () => {
-          try {
-            const response = await fetch(SERVICE_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: messageToSend }),
-            });
-            const data = await response.json();
-            setReply(data.reply || 'No reply received.');
-          } catch (err) {
-            setReply('Error contacting service.');
-          }
-        };
-        send();
-      } else {
-        setReply('No transcription was captured.');
-      }
-      setShouldSend(false);
-    }
-  }, [shouldSend, transcript]);
 
   return (
     <Box sx={{ height: '100vh', width: '100vw', bgcolor: '#23272a', display: 'flex', flexDirection: 'column', fontFamily: 'Roboto, sans-serif' }}>
