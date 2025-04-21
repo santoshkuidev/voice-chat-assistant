@@ -29,6 +29,7 @@ function App() {
   const handleRecord = async () => {
     setTranscript('');
     setReply('');
+    lastTranscriptRef.current = '';
     if (supportsSpeechRecognition()) {
       setIsMobileFallback(false);
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -59,7 +60,13 @@ function App() {
             setReply(data.reply || 'No reply received.');
           } catch (err) {
             setReply('Error contacting chat service.');
+          } finally {
+            setTranscript('');
+            lastTranscriptRef.current = '';
           }
+        } else {
+          setTranscript('');
+          lastTranscriptRef.current = '';
         }
       };
       recognitionRef.current = recognition;
@@ -107,9 +114,14 @@ function App() {
                   setReply(chatData.reply || 'No reply received.');
                 } catch (err) {
                   setReply('Error contacting chat service.');
+                } finally {
+                  setTranscript('');
+                  lastTranscriptRef.current = '';
                 }
               } else {
                 setReply('No transcription was captured.');
+                setTranscript('');
+                lastTranscriptRef.current = '';
               }
             } catch (err) {
               setTranscribing(false);
