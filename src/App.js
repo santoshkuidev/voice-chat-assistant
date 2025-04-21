@@ -158,81 +158,61 @@ function App() {
 
   return (
     <Box sx={{ height: '100vh', width: '100vw', bgcolor: '#23272a', display: 'flex', flexDirection: 'column', fontFamily: 'Roboto, sans-serif' }}>
-      {/* Top 30%: Controls */}
-      <Box sx={{ flex: '0 0 30%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#2c2f33', boxShadow: 2 }}>
-        <Box sx={{ display: 'flex', gap: 3, alignItems: 'center', mb: 2 }}>
-          <Button
-            variant="contained"
-            color="error"
-            size="large"
-            onClick={handleRecord}
-            disabled={recording || transcribing}
-            sx={{
-              borderRadius: '50%',
-              minWidth: 72,
-              minHeight: 72,
-              bgcolor: '#d32f2f',
-              boxShadow: '0 4px 16px rgba(211,47,47,0.2)',
-              position: 'relative',
-              p: 0,
-              '&:hover': { bgcolor: '#b71c1c' },
-              animation: recording ? 'pulse 1.2s infinite' : 'none',
-              '@keyframes pulse': {
-                '0%': { boxShadow: '0 0 0 0 rgba(211,47,47,0.7)' },
-                '70%': { boxShadow: '0 0 0 12px rgba(211,47,47,0)' },
-                '100%': { boxShadow: '0 0 0 0 rgba(211,47,47,0)' },
-              },
-            }}
-          >
-            <FiberManualRecordIcon sx={{ fontSize: 48 }} />
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            size="large"
-            onClick={handleStop}
-            disabled={!recording || transcribing}
-            sx={{
-              borderRadius: '50%',
-              minWidth: 72,
-              minHeight: 72,
-              bgcolor: '#424242',
-              color: '#fff',
-              boxShadow: '0 4px 16px rgba(66,66,66,0.2)',
-              p: 0,
-              '&:hover': { bgcolor: '#1a1a1a' },
-            }}
-          >
-            <StopIcon sx={{ fontSize: 40 }} />
-          </Button>
-        </Box>
-        <Fade in={recording} unmountOnExit>
-          <Typography variant="h6" color="error" sx={{ fontWeight: 500, letterSpacing: 1 }}>
-            Recording... Speak now
+      {/* Top: Assistant's Response */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', bgcolor: '#18191c', p: 4 }}>
+        <Paper elevation={3} sx={{ width: '100%', maxWidth: 700, bgcolor: '#26282b', borderRadius: 4, p: 4, boxShadow: '0 2px 12px rgba(0,0,0,0.15)' }}>
+          <Typography variant="h6" sx={{ color: '#eee', mb: 2, fontWeight: 700 }}>
+            Assistant's Response
           </Typography>
-        </Fade>
+          <Typography variant="body1" sx={{ color: '#cfd8dc', whiteSpace: 'pre-line' }}>
+            {reply || 'No response yet.'}
+          </Typography>
+          {!recording && transcript && !transcribing && (
+            <Typography variant="subtitle1" color="#bdbdbd" sx={{ mt: 2 }}>
+              You said: "{transcript}"
+            </Typography>
+          )}
+        </Paper>
         {transcribing && (
           <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
             <CircularProgress size={24} color="error" sx={{ mr: 1 }} />
             <Typography variant="subtitle1" color="#bdbdbd">Transcribing...</Typography>
           </Box>
         )}
-        {!recording && transcript && !transcribing && (
-          <Typography variant="subtitle1" color="#bdbdbd" sx={{ mt: 2 }}>
-            You said: "{transcript}"
-          </Typography>
-        )}
       </Box>
-      {/* Bottom 60%: Response */}
-      <Box sx={{ flex: '1 1 60%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', bgcolor: '#18191c', p: 4 }}>
-        <Paper elevation={3} sx={{ width: '100%', maxWidth: 700, minHeight: '60%', bgcolor: '#26282b', borderRadius: 4, p: 4, boxShadow: '0 2px 12px rgba(0,0,0,0.15)' }}>
-          <Typography variant="h6" sx={{ color: '#eee', mb: 2, fontWeight: 700 }}>
-            Assistant's Response
+      {/* Bottom: Controls section */}
+      <Box sx={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', bgcolor: '#2c2f33', boxShadow: 2, pb: 1, mr: 3 }}>
+        <Button
+          variant="contained"
+          color={recording ? 'primary' : 'error'}
+          size="large"
+          onClick={recording ? handleStop : handleRecord}
+          disabled={transcribing}
+          sx={{
+            borderRadius: '50%',
+            minWidth: 72,
+            minHeight: 72,
+            bgcolor: recording ? '#424242' : '#d32f2f',
+            color: '#fff',
+            boxShadow: '0 4px 16px rgba(211,47,47,0.2)',
+            position: 'relative',
+            p: 0,
+            '&:hover': { bgcolor: recording ? '#1a1a1a' : '#b71c1c' },
+            animation: recording ? 'pulse 1.2s infinite' : 'none',
+            '@keyframes pulse': {
+              '0%': { boxShadow: '0 0 0 0 rgba(211,47,47,0.7)' },
+              '70%': { boxShadow: '0 0 0 12px rgba(211,47,47,0)' },
+              '100%': { boxShadow: '0 0 0 0 rgba(211,47,47,0)' },
+            },
+          }}
+        >
+          {recording ? <StopIcon sx={{ fontSize: 48 }} /> : <FiberManualRecordIcon sx={{ fontSize: 48 }} />}
+        </Button>
+        <Fade in={recording} unmountOnExit>
+          <Typography variant="h6" color="error" sx={{ fontWeight: 500, letterSpacing: 1, mt: 2 }}>
+            Recording... Speak now
           </Typography>
-          <Typography variant="body1" sx={{ color: reply ? '#fafafa' : '#888', whiteSpace: 'pre-wrap', minHeight: 48 }}>
-            {reply || 'Response will appear here.'}
-          </Typography>
-        </Paper>
+        </Fade>
       </Box>
     </Box>
   );
