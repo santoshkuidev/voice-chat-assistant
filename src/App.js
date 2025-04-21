@@ -157,7 +157,7 @@ function App() {
 
 
   return (
-    <Box sx={{ height: '100vh', width: '100vw', bgcolor: '#23272a', display: 'flex', flexDirection: 'column', fontFamily: 'Roboto, sans-serif' }}>
+    <Box sx={{ minHeight: '100vh', height: '100dvh', width: '100vw', bgcolor: '#23272a', display: 'flex', flexDirection: 'column', fontFamily: 'Roboto, sans-serif', position: 'relative' }}>
       {/* Top: Assistant's Response */}
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', bgcolor: '#18191c', p: 4 }}>
         <Paper elevation={3} sx={{ width: '100%', maxWidth: 700, bgcolor: '#26282b', borderRadius: 4, p: 4, boxShadow: '0 2px 12px rgba(0,0,0,0.15)' }}>
@@ -181,7 +181,7 @@ function App() {
         )}
       </Box>
       {/* Bottom: Controls section */}
-      <Box sx={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', bgcolor: '#2c2f33', boxShadow: 2, pb: 1, mr: 3 }}>
+      <Box sx={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', bgcolor: '#2c2f33', boxShadow: 2, pb: 'calc(env(safe-area-inset-bottom, 0px) + 8px)', mr: 3, zIndex: 10 }}>
         <Button
           variant="contained"
           color={recording ? 'primary' : 'error'}
