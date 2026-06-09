@@ -5,6 +5,8 @@ import StopIcon from '@mui/icons-material/Stop';
 
 const SERVICE_URL = 'https://chat-bot-api-node.vercel.app/api/chat';
 const TRANSCRIBE_URL = 'https://chat-bot-api-node.vercel.app/api/transcribe';
+// Wait this long after the last heard speech before sending the request
+const SILENCE_DELAY_MS = 1500;
 
 function App() {
   const [recording, setRecording] = useState(false);
@@ -18,6 +20,29 @@ function App() {
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const recordingRef = useRef(false);
+  const shouldFinalizeRef = useRef(false);
+  const silenceTimerRef = useRef(null);
+
+  const clearSilenceTimer = () => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+  };
+
+  const resetSilenceTimer = () => {
+    clearSilenceTimer();
+    silenceTimerRef.current = setTimeout(() => {
+      shouldFinalizeRef.current = true;
+      recognitionRef.current?.stop();
+    }, SILENCE_DELAY_MS);
+  };
+
+  useEffect(() => () => {
+    clearSilenceTimer();
+    recognitionRef.current?.abort();
+  }, []);
 
   // Helper: Check if browser supports Web Speech API
   const supportsSpeechRecognition = () => (
@@ -25,51 +50,91 @@ function App() {
   );
 
 
+  const sendMessage = async (message) => {
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    setTranscript(trimmed);
+    try {
+      const response = await fetch(SERVICE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: trimmed }),
+      });
+      const data = await response.json();
+      setReply(data.reply || 'No reply received.');
+    } catch (err) {
+      setReply('Error contacting chat service.');
+    } finally {
+      setTranscript('');
+      lastTranscriptRef.current = '';
+    }
+  };
+
   // Start recording (speech or audio fallback)
   const handleRecord = async () => {
     setTranscript('');
     setReply('');
     lastTranscriptRef.current = '';
+    shouldFinalizeRef.current = false;
+    clearSilenceTimer();
     if (supportsSpeechRecognition()) {
       setIsMobileFallback(false);
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       recognition.lang = 'en-US';
-      recognition.interimResults = false;
+      recognition.continuous = true;
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
       recognition.onresult = (event) => {
-        const text = event.results[0][0].transcript;
-        lastTranscriptRef.current = text;
-        setTranscript(text);
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const text = result[0].transcript;
+          if (result.isFinal) {
+            const part = text.trim();
+            if (part) {
+              lastTranscriptRef.current = lastTranscriptRef.current
+                ? `${lastTranscriptRef.current} ${part}`
+                : part;
+            }
+          } else {
+            interim += text;
+          }
+        }
+        setTranscript((lastTranscriptRef.current + interim).trim());
+        resetSilenceTimer();
       };
       recognition.onerror = (event) => {
+        if (event.error === 'no-speech' && recordingRef.current && !shouldFinalizeRef.current) {
+          return;
+        }
+        clearSilenceTimer();
         setReply('Speech recognition error: ' + event.error);
+        recordingRef.current = false;
         setRecording(false);
       };
       recognition.onend = async () => {
-        setRecording(false);
-        const message = transcript || lastTranscriptRef.current;
-        if (message) {
+        if (!shouldFinalizeRef.current && recordingRef.current) {
           try {
-            const response = await fetch(SERVICE_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message }),
-            });
-            const data = await response.json();
-            setReply(data.reply || 'No reply received.');
+            recognition.start();
           } catch (err) {
-            setReply('Error contacting chat service.');
-          } finally {
-            setTranscript('');
-            lastTranscriptRef.current = '';
+            // Recognition already active or mic unavailable
           }
+          return;
+        }
+        clearSilenceTimer();
+        recordingRef.current = false;
+        setRecording(false);
+        const message = lastTranscriptRef.current.trim();
+        if (message) {
+          await sendMessage(message);
         } else {
           setTranscript('');
           lastTranscriptRef.current = '';
         }
       };
       recognitionRef.current = recognition;
+      recordingRef.current = true;
       recognition.start();
       setRecording(true);
     } else if (navigator.mediaDevices && window.MediaRecorder) {
@@ -145,12 +210,12 @@ function App() {
     if (isMobileFallback && mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
     } else if (recognitionRef.current) {
+      shouldFinalizeRef.current = true;
+      clearSilenceTimer();
       recognitionRef.current.stop();
-      setRecording(false);
-      
     } else {
+      recordingRef.current = false;
       setRecording(false);
-      
     }
   };
 
@@ -167,6 +232,11 @@ function App() {
           <Typography variant="body1" sx={{ color: '#cfd8dc', whiteSpace: 'pre-line' }}>
             {reply || 'No response yet.'}
           </Typography>
+          {recording && transcript && (
+            <Typography variant="subtitle1" color="#90caf9" sx={{ mt: 2 }}>
+              Listening: "{transcript}"
+            </Typography>
+          )}
           {!recording && transcript && !transcribing && (
             <Typography variant="subtitle1" color="#bdbdbd" sx={{ mt: 2 }}>
               You said: "{transcript}"
@@ -224,8 +294,8 @@ function App() {
           {recording ? <StopIcon sx={{ fontSize: 48 }} /> : <FiberManualRecordIcon sx={{ fontSize: 48 }} />}
         </Button>
         <Fade in={recording} unmountOnExit>
-          <Typography variant="h6" color="error" sx={{ fontWeight: 500, letterSpacing: 1, mt: 2 }}>
-            Recording... Speak now
+          <Typography variant="h6" color="error" sx={{ fontWeight: 500, letterSpacing: 1, mt: 2, textAlign: 'right' }}>
+            Listening... pause ~1.5s when done
           </Typography>
         </Fade>
       </Box>
