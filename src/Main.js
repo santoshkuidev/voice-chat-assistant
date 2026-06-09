@@ -9,20 +9,11 @@ function getCookie(name) {
 }
 
 export default function Main() {
-  const mode = getCookie('mode');
+  const mode = getCookie('mode') || 'profile';
 
   if (mode === 'interview') {
     return <App />;
-  } else if (mode === 'profile') {
-    return <ProfileAssistant />;
-  } else {
-    return (
-      <div style={{ color: '#fff', background: '#23272a', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Roboto, sans-serif' }}>
-        <div>
-          <h2>Invalid or missing mode cookie</h2>
-          <p>Please set the <b>mode</b> cookie to <code>interview</code> or <code>profile</code> and refresh the page.</p>
-        </div>
-      </div>
-    );
   }
+
+  return <ProfileAssistant />;
 }
